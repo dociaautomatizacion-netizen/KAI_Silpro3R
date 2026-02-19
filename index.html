@@ -1,1 +1,787 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Simulación de e-commerce para laboratorio: catálogo, colecciones, FAQ y contacto." />
+  <title>Silpro 3R — Simulación (Laboratorio)</title>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1b33;
+      --panel2:#101f3d;
+      --text:#e9eefc;
+      --muted:#b9c6ee;
+      --line:rgba(255,255,255,.10);
+      --brand:#5aa2ff;
+      --brand2:#7cffa6;
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+      --max: 1120px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 20% 10%, rgba(90,162,255,.20), transparent 60%),
+        radial-gradient(700px 500px at 80% 0%, rgba(124,255,166,.10), transparent 55%),
+        radial-gradient(800px 700px at 50% 100%, rgba(90,162,255,.10), transparent 60%),
+        var(--bg);
+      line-height:1.45;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+    button,input,select,textarea{ font:inherit; color:inherit; }
+
+    .wrap{ width:min(var(--max), calc(100% - 32px)); margin:0 auto; }
+
+    /* Top bar */
+    .topbar{
+      background:rgba(0,0,0,.20);
+      border-bottom:1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+    .topbar .row{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      padding:10px 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:6px 10px; border:1px solid var(--line); border-radius:999px;
+      background:rgba(255,255,255,.04);
+    }
+
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:50;
+      background:rgba(11,18,32,.55);
+      border-bottom:1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0;
+      gap:16px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px; min-width:220px;
+    }
+    .logo{
+      width:42px; height:42px; border-radius:14px;
+      background:
+        linear-gradient(135deg, rgba(90,162,255,.95), rgba(124,255,166,.55));
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.50), transparent 45%);
+      transform: rotate(18deg);
+    }
+    .brand strong{ font-size:15px; letter-spacing:.2px; }
+    .brand small{ display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+
+    .links{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+    .link{
+      padding:8px 10px; border-radius:12px;
+      color:var(--muted);
+    }
+    .link:hover{ background:rgba(255,255,255,.06); color:var(--text); }
+
+    .actions{
+      display:flex; gap:10px; align-items:center; justify-content:flex-end; min-width:260px;
+    }
+    .search{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:999px;
+      padding:10px 12px;
+      width:min(360px, 42vw);
+    }
+    .search input{
+      background:transparent; border:0; outline:0;
+      width:100%;
+      color:var(--text);
+    }
+    .btn{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      border-radius:999px;
+      padding:10px 12px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      border-color: rgba(90,162,255,.55);
+      background: linear-gradient(135deg, rgba(90,162,255,.25), rgba(124,255,166,.12));
+    }
+    .btn:hover{ filter:brightness(1.06); }
+
+    /* Hero */
+    .hero{ padding:34px 0 8px; }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(15,27,51,.85), rgba(15,27,51,.55));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .heroMain{ padding:22px; }
+    .kicker{
+      display:inline-flex; gap:10px; align-items:center;
+      color:var(--muted);
+      font-size:13px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px;
+    }
+    h1{
+      margin:14px 0 10px;
+      font-size: clamp(26px, 3.4vw, 44px);
+      letter-spacing:-.6px;
+      line-height:1.05;
+    }
+    .lead{ color:var(--muted); font-size:15px; margin:0 0 16px; max-width:58ch; }
+    .ctaRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .stats{
+      display:grid; grid-template-columns: repeat(3, 1fr);
+      gap:10px; margin-top:16px;
+    }
+    .stat{
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+    }
+    .stat b{ display:block; font-size:16px; }
+    .stat span{ color:var(--muted); font-size:12px; }
+
+    .heroSide{
+      padding:18px;
+      display:flex; flex-direction:column; gap:12px;
+      background: linear-gradient(180deg, rgba(16,31,61,.90), rgba(16,31,61,.55));
+    }
+    .sideBlock{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:14px;
+    }
+    .sideBlock h3{ margin:0 0 8px; font-size:14px; }
+    .sideBlock p{ margin:0; color:var(--muted); font-size:13px; }
+    .sideMeta{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .chip{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      padding:6px 10px; border-radius:999px;
+    }
+
+    /* Sections */
+    section{ padding:18px 0; }
+    .sectionHead{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+      margin:8px 0 12px;
+    }
+    .sectionHead h2{
+      margin:0;
+      font-size:18px;
+      letter-spacing:-.2px;
+    }
+    .sectionHead p{ margin:0; color:var(--muted); font-size:13px; max-width:70ch; }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+    }
+    .grid4{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:12px;
+    }
+
+    .tile{
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .tile:hover{ transform: translateY(-2px); filter:brightness(1.05); }
+    .tile h3{ margin:0 0 8px; font-size:14px; }
+    .tile p{ margin:0; color:var(--muted); font-size:13px; }
+    .tile .meta{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+    .badge{
+      font-size:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      padding:6px 10px;
+      border-radius:999px;
+    }
+
+    /* Product grid */
+    .toolbar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center; justify-content:space-between;
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+    }
+    .toolbar .left, .toolbar .right{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    select{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:0;
+    }
+
+    .products{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:12px;
+    }
+    .product{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height: 240px;
+    }
+    .thumb{
+      height:120px;
+      background:
+        radial-gradient(240px 120px at 30% 30%, rgba(90,162,255,.35), transparent 60%),
+        radial-gradient(240px 120px at 80% 20%, rgba(124,255,166,.18), transparent 55%),
+        rgba(255,255,255,.03);
+      border-bottom:1px solid var(--line);
+      position:relative;
+    }
+    .thumb .tag{
+      position:absolute; top:10px; left:10px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+      color:var(--muted);
+    }
+    .pBody{ padding:12px; display:flex; flex-direction:column; gap:8px; flex:1; }
+    .pTitle{ font-size:13.5px; margin:0; }
+    .pDesc{ margin:0; color:var(--muted); font-size:12.5px; }
+    .pRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto; }
+    .price{ font-weight:700; font-size:13px; }
+    .mini{ font-size:12px; color:var(--muted); }
+
+    /* FAQ + contact */
+    details{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      padding:12px 14px;
+    }
+    details + details{ margin-top:10px; }
+    summary{ cursor:pointer; font-weight:600; }
+    details p{ margin:10px 0 0; color:var(--muted); font-size:13px; }
+
+    .form{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .form .full{ grid-column:1 / -1; }
+    .field{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:14px;
+      padding:10px 12px;
+      outline:0;
+      width:100%;
+    }
+    textarea.field{ min-height:110px; resize:vertical; }
+
+    footer{
+      margin-top:18px;
+      border-top:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+    }
+    .foot{
+      padding:18px 0;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr 1fr;
+      gap:14px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .foot h4{ margin:0 0 10px; color:var(--text); font-size:13.5px; }
+    .foot a{ color:var(--muted); }
+    .foot a:hover{ color:var(--text); }
+    .copy{
+      border-top:1px solid var(--line);
+      padding:12px 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      .heroGrid{ grid-template-columns: 1fr; }
+      .actions{ min-width:unset; }
+      .grid4{ grid-template-columns: repeat(2, 1fr); }
+      .products{ grid-template-columns: repeat(2, 1fr); }
+      .foot{ grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px){
+      .links{ display:none; }
+      .search{ width: 56vw; }
+      .grid3{ grid-template-columns: 1fr; }
+      .grid4{ grid-template-columns: 1fr; }
+      .products{ grid-template-columns: 1fr; }
+      .form{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="row">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="pill">Simulación para laboratorio</span>
+          <span class="pill">Entrega local • Envíos • Atención WhatsApp</span>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+          <span class="pill">Horario: Lun–Vie 08:30–17:30 • Sáb 08:30–12:30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="wrap">
+      <div class="nav">
+        <a class="brand" href="#inicio" aria-label="Ir al inicio">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <strong>SILPRO 3R</strong>
+            <small>Simulación e-commerce (laboratorio)</small>
+          </div>
+        </a>
+
+        <nav class="links" aria-label="Navegación principal">
+          <a class="link" href="#inicio">Inicio</a>
+          <a class="link" href="#colecciones">Colecciones</a>
+          <a class="link" href="#productos">Productos</a>
+          <a class="link" href="#faq">Preguntas frecuentes</a>
+          <a class="link" href="#contacto">Contacto</a>
+        </nav>
+
+        <div class="actions">
+          <div class="search" role="search">
+            <span aria-hidden="true">🔎</span>
+            <input id="q" type="search" placeholder="Buscar producto (laboratorio)..." autocomplete="off" />
+          </div>
+          <button class="btn" id="btnCart" type="button" title="Carrito (simulado)">🛒</button>
+          <a class="btn primary" href="#productos">Ver catálogo</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="inicio" class="wrap">
+    <div class="hero">
+      <div class="heroGrid">
+        <div class="card heroMain">
+          <span class="kicker">Empresa de suministros • Limpieza • Higiene • Consumibles</span>
+          <h1>Catálogo y servicios para limpieza, imagen e higiene (simulación para clase)</h1>
+          <p class="lead">
+            Esta página está pensada para practicar un e-commerce completo: colecciones, búsqueda, fichas de producto, FAQ y contacto.
+            El contenido es demostrativo para tu laboratorio; reemplaza textos, logos e imágenes según tu caso.
+          </p>
+
+          <div class="ctaRow">
+            <a class="btn primary" href="#colecciones">Explorar colecciones</a>
+            <a class="btn" href="#contacto">Solicitar cotización</a>
+            <a class="btn" href="#faq">Ver FAQ</a>
+          </div>
+
+          <div class="stats" aria-label="Indicadores">
+            <div class="stat">
+              <b>+14 años</b>
+              <span>Experiencia (texto demo)</span>
+            </div>
+            <div class="stat">
+              <b>Marcas líderes</b>
+              <span>Calidad y certificaciones (demo)</span>
+            </div>
+            <div class="stat">
+              <b>Mérida y Cancún</b>
+              <span>Cobertura regional (demo)</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="card heroSide" aria-label="Bloques laterales">
+          <div class="sideBlock">
+            <h3>Nuestras marcas (demo)</h3>
+            <p>Bloque tipo “marcas” habitual en Shopify. Sustituye por logos reales o tarjetas.</p>
+            <div class="sideMeta">
+              <span class="chip">Tork</span>
+              <span class="chip">Rubbermaid</span>
+              <span class="chip">Wiese</span>
+              <span class="chip">GCPaper</span>
+            </div>
+          </div>
+
+          <div class="sideBlock">
+            <h3>Visítanos (demo)</h3>
+            <p>
+              Calle 23 Num 81B Int 2, Cholul, 97300, Yucatán<br/>
+              Tel/WhatsApp: 999 121 4058
+            </p>
+            <div class="sideMeta">
+              <span class="chip">Entrega local 24h (demo)</span>
+              <span class="chip">Recolección en oficina</span>
+            </div>
+          </div>
+
+          <div class="sideBlock">
+            <h3>Objetivo didáctico</h3>
+            <p>Simular navegación, filtrado, sort, cards y captura de leads para automatización (n8n/Sheets/CRM).</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <section id="colecciones">
+      <div class="sectionHead">
+        <div>
+          <h2>Colecciones</h2>
+          <p>Representa las categorías típicas de catálogo (papel, químicos, jarciería, autos, etc.).</p>
+        </div>
+      </div>
+
+      <div class="grid4">
+        <a class="tile" href="#productos" data-collection="Papel">
+          <h3>Papel</h3>
+          <p>Toallas, higiénicos, servilletas, wipers.</p>
+          <div class="meta"><span class="badge">Colección</span><span class="badge">Alta rotación</span></div>
+        </a>
+        <a class="tile" href="#productos" data-collection="Limpieza">
+          <h3>Limpieza</h3>
+          <p>Desinfectantes, limpiadores, cloro, detergentes.</p>
+          <div class="meta"><span class="badge">Colección</span><span class="badge">Profesional</span></div>
+        </a>
+        <a class="tile" href="#productos" data-collection="Aromatizantes">
+          <h3>Aromatizantes</h3>
+          <p>Aerosoles, ambientadores y control de olores.</p>
+          <div class="meta"><span class="badge">Colección</span><span class="badge">Aerosol</span></div>
+        </a>
+        <a class="tile" href="#productos" data-collection="Jarciería">
+          <h3>Jarciería</h3>
+          <p>Trapeadores, mopas, jaladores, fibras, paños.</p>
+          <div class="meta"><span class="badge">Colección</span><span class="badge">Operación</span></div>
+        </a>
+      </div>
+    </section>
+
+    <section id="productos">
+      <div class="sectionHead">
+        <div>
+          <h2>Productos (demo)</h2>
+          <p>Grid de productos con “tag”, precio y botón de acción. Búsqueda y filtros funcionan en cliente.</p>
+        </div>
+      </div>
+
+      <div class="toolbar" aria-label="Barra de filtros">
+        <div class="left">
+          <span class="mini">Filtrar:</span>
+          <select id="filterCollection" aria-label="Filtrar por colección">
+            <option value="all">Todas</option>
+            <option value="Papel">Papel</option>
+            <option value="Limpieza">Limpieza</option>
+            <option value="Aromatizantes">Aromatizantes</option>
+            <option value="Jarciería">Jarciería</option>
+            <option value="Autos">Autos</option>
+          </select>
+
+          <select id="filterStock" aria-label="Filtrar por disponibilidad">
+            <option value="all">Todas</option>
+            <option value="in">En stock</option>
+            <option value="out">Agotado</option>
+          </select>
+        </div>
+
+        <div class="right">
+          <span class="mini">Ordenar:</span>
+          <select id="sortBy" aria-label="Ordenar productos">
+            <option value="popular">Más vendidos (demo)</option>
+            <option value="az">A–Z</option>
+            <option value="za">Z–A</option>
+            <option value="priceAsc">Precio ↑</option>
+            <option value="priceDesc">Precio ↓</option>
+          </select>
+          <button class="btn" id="btnReset" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div class="products" id="products" aria-label="Listado de productos">
+        <!-- Productos demo (originales, no copiados). Cambia a tu CSV/JSON cuando conectes el lab -->
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="sectionHead">
+        <div>
+          <h2>Preguntas frecuentes</h2>
+          <p>Sección tipo Shopify “FAQ”. Textos demostrativos.</p>
+        </div>
+      </div>
+
+      <details>
+        <summary>¿Quiénes somos?</summary>
+        <p>Simulación de empresa de suministros y consumibles para higiene/limpieza. Sustituye por tu descripción real.</p>
+      </details>
+
+      <details>
+        <summary>¿Cómo funcionan los pedidos?</summary>
+        <p>Ejemplo: compra en línea, recolección en oficina o entrega local. Define tus SLA, horarios y cobertura.</p>
+      </details>
+
+      <details>
+        <summary>¿Cómo puedo contactarlos?</summary>
+        <p>Usa el formulario de contacto o WhatsApp. En el laboratorio esto conecta con n8n / Sheets / CRM.</p>
+      </details>
+    </section>
+
+    <section id="contacto">
+      <div class="sectionHead">
+        <div>
+          <h2>Contacto</h2>
+          <p>Formulario simple para capturar leads. En clase lo puedes conectar a n8n Forms o un webhook.</p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px;">
+        <form id="contactForm">
+          <div class="form">
+            <input class="field" name="nombre" placeholder="Nombre" required />
+            <input class="field" name="email" type="email" placeholder="Correo electrónico" required />
+            <input class="field" name="telefono" placeholder="Número de teléfono" />
+            <input class="field" name="empresa" placeholder="Empresa (opcional)" />
+            <textarea class="field full" name="mensaje" placeholder="Mensaje" required></textarea>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+            <button class="btn primary" type="submit">Enviar</button>
+            <span class="mini" id="formStatus" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div>
+          <h4>SILPRO 3R — Simulación</h4>
+          <div>Laboratorio didáctico para prácticas de e-commerce, analítica y automatización.</div>
+        </div>
+        <div>
+          <h4>Menú rápido</h4>
+          <div style="display:grid; gap:8px;">
+            <a href="#inicio">Inicio</a>
+            <a href="#colecciones">Colecciones</a>
+            <a href="#productos">Productos</a>
+            <a href="#faq">Preguntas frecuentes</a>
+            <a href="#contacto">Contacto</a>
+          </div>
+        </div>
+        <div>
+          <h4>Ubicación y horario (demo)</h4>
+          <div>Calle 23 Num 81B Int 2, Cholul, 97300, Yuc.</div>
+          <div>Lun–Vie 08:30–17:30 • Sáb 08:30–12:30</div>
+          <div style="margin-top:8px;">WhatsApp: 999 121 4058</div>
+        </div>
+      </div>
+
+      <div class="copy">
+        © <span id="year"></span> — Página de simulación para laboratorio. No afiliada.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ====== Datos demo (sustituye por tu JSON/CSV) ======
+    const DEMO_PRODUCTS = [
+      { id:"P-001", title:"Toalla interdoblada universal (demo)", collection:"Papel", price:383.30, stock:"out", tag:"Papel" },
+      { id:"P-002", title:"Higiénico bobina mini (demo)", collection:"Papel", price:597.31, stock:"in", tag:"Papel" },
+      { id:"L-001", title:"Limpiador multiusos concentrado (demo)", collection:"Limpieza", price:68.90, stock:"in", tag:"Limpieza" },
+      { id:"L-002", title:"Desinfectante para superficies (demo)", collection:"Limpieza", price:92.50, stock:"in", tag:"Desinfección" },
+      { id:"A-001", title:"Aroma aerosol 400 ml (demo)", collection:"Aromatizantes", price:26.67, stock:"out", tag:"Aerosol" },
+      { id:"A-002", title:"Aromatizante 1 L (demo)", collection:"Aromatizantes", price:13.03, stock:"in", tag:"Aromas" },
+      { id:"J-001", title:"Mopa industrial con bastón (demo)", collection:"Jarciería", price:145.00, stock:"in", tag:"Jarciería" },
+      { id:"J-002", title:"Jalador para pisos (demo)", collection:"Jarciería", price:89.00, stock:"in", tag:"Operación" },
+      { id:"AU-001", title:"Abrillantador de llantas en gel (demo)", collection:"Autos", price:37.33, stock:"in", tag:"Autos" },
+      { id:"AU-002", title:"Shampoo automotriz (demo)", collection:"Autos", price:59.90, stock:"in", tag:"Autos" },
+      { id:"L-003", title:"Detergente líquido (demo)", collection:"Limpieza", price:54.20, stock:"in", tag:"Detergente" },
+      { id:"P-003", title:"Servilleta dispensador (demo)", collection:"Papel", price:391.88, stock:"in", tag:"Servilletas" },
+    ];
+
+    const elProducts = document.getElementById("products");
+    const elQ = document.getElementById("q");
+    const elCollection = document.getElementById("filterCollection");
+    const elStock = document.getElementById("filterStock");
+    const elSort = document.getElementById("sortBy");
+    const elReset = document.getElementById("btnReset");
+
+    function money(n){
+      try {
+        return new Intl.NumberFormat("es-MX",{ style:"currency", currency:"MXN" }).format(n);
+      } catch {
+        return "$ " + Number(n).toFixed(2);
+      }
+    }
+
+    function render(products){
+      elProducts.innerHTML = "";
+      if(!products.length){
+        elProducts.innerHTML = `<div class="tile" style="grid-column:1 / -1;">
+          <h3>Sin resultados</h3>
+          <p>Prueba otro término o cambia filtros.</p>
+        </div>`;
+        return;
+      }
+      for(const p of products){
+        const node = document.createElement("article");
+        node.className = "product";
+        node.setAttribute("data-collection", p.collection);
+        node.setAttribute("data-stock", p.stock);
+        node.setAttribute("data-price", String(p.price));
+        node.setAttribute("data-title", p.title.toLowerCase());
+
+        node.innerHTML = `
+          <div class="thumb">
+            <div class="tag">${p.tag}${p.stock === "out" ? " • Agotado" : ""}</div>
+          </div>
+          <div class="pBody">
+            <p class="pTitle"><b>${p.title}</b></p>
+            <p class="pDesc">SKU: ${p.id} • Colección: ${p.collection}</p>
+            <div class="pRow">
+              <span class="price">${money(p.price)}</span>
+              <button class="btn" type="button" data-add="${p.id}">
+                ${p.stock === "out" ? "Avisar" : "Agregar"}
+              </button>
+            </div>
+          </div>
+        `;
+        elProducts.appendChild(node);
+      }
+    }
+
+    function applyFilters(){
+      const q = (elQ.value || "").trim().toLowerCase();
+      const c = elCollection.value;
+      const s = elStock.value;
+
+      let list = DEMO_PRODUCTS.slice();
+
+      if(c !== "all") list = list.filter(p => p.collection === c);
+      if(s !== "all") list = list.filter(p => p.stock === (s === "in" ? "in" : "out"));
+      if(q) list = list.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q) ||
+        p.collection.toLowerCase().includes(q)
+      );
+
+      // Sort
+      const sort = elSort.value;
+      if(sort === "az") list.sort((a,b)=> a.title.localeCompare(b.title));
+      if(sort === "za") list.sort((a,b)=> b.title.localeCompare(a.title));
+      if(sort === "priceAsc") list.sort((a,b)=> a.price - b.price);
+      if(sort === "priceDesc") list.sort((a,b)=> b.price - a.price);
+      // "popular" demo: no cambia
+
+      render(list);
+    }
+
+    // Colecciones: click en tiles aplica filtro
+    document.querySelectorAll("[data-collection]").forEach(a=>{
+      a.addEventListener("click", ()=>{
+        const c = a.getAttribute("data-collection");
+        if(c){ elCollection.value = c; applyFilters(); }
+      });
+    });
+
+    // Events
+    ["input","change"].forEach(evt=>{
+      elQ.addEventListener(evt, applyFilters);
+      elCollection.addEventListener(evt, applyFilters);
+      elStock.addEventListener(evt, applyFilters);
+      elSort.addEventListener(evt, applyFilters);
+    });
+
+    elReset.addEventListener("click", ()=>{
+      elQ.value = "";
+      elCollection.value = "all";
+      elStock.value = "all";
+      elSort.value = "popular";
+      applyFilters();
+    });
+
+    // Carrito simulado
+    document.addEventListener("click", (e)=>{
+      const btn = e.target.closest("[data-add]");
+      if(btn){
+        const sku = btn.getAttribute("data-add");
+        alert("Simulación: acción de carrito / avisos. SKU: " + sku);
+      }
+    });
+    document.getElementById("btnCart").addEventListener("click", ()=>{
+      alert("Carrito simulado (laboratorio). Conecta esto a tu flujo n8n/CRM si quieres.");
+    });
+
+    // Contact form (simulado)
+    const form = document.getElementById("contactForm");
+    const status = document.getElementById("formStatus");
+    form.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      // Aquí puedes POSTear a un webhook: fetch("https://tu-webhook", {method:"POST", headers:{...}, body:JSON.stringify(data)})
+      console.log("Lead (demo):", data);
+      status.textContent = "Enviado (simulación). Revisa la consola.";
+      form.reset();
+      setTimeout(()=> status.textContent = "", 4000);
+    });
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Render inicial
+    applyFilters();
+  </script>
+</body>
+</html>
 
