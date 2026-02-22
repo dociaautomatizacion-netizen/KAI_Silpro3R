@@ -346,6 +346,44 @@
       font-size:12px;
     }
 
+    /* ===== Modal Chat soporte ===== */
+    .modal{ position:fixed; inset:0; display:none; z-index:9999; }
+    .modal.is-open{ display:block; }
+    .modal__backdrop{
+      position:absolute; inset:0;
+      background:rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+    }
+    .modal__panel{
+      position:relative;
+      width:min(720px, calc(100% - 24px));
+      margin: 6vh auto;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      background: linear-gradient(180deg, rgba(15,27,51,.95), rgba(15,27,51,.70));
+      overflow:hidden;
+    }
+    .modal__head{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      padding:14px 14px;
+      border-bottom:1px solid var(--line);
+    }
+    .modal__sub{ font-size:12px; color:var(--muted); margin-top:3px; }
+    .chatlog{
+      height: 340px;
+      overflow:auto;
+      padding:12px 14px;
+      background: rgba(0,0,0,.10);
+    }
+    .chatbar{
+      display:flex; gap:10px; align-items:center;
+      padding:12px 14px;
+      border-top:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+
     /* Responsive */
     @media (max-width: 980px){
       .heroGrid{ grid-template-columns: 1fr; }
@@ -405,6 +443,10 @@
             <input id="q" type="search" placeholder="Buscar producto (laboratorio)..." autocomplete="off" />
           </div>
           <button class="btn" id="btnCart" type="button" title="Carrito (simulado)">🛒</button>
+
+          <!-- BOTÓN SOPORTE -->
+          <button class="btn" id="btnSupport" type="button" title="Atención al cliente">💬 Atención al cliente</button>
+
           <a class="btn primary" href="#productos">Ver catálogo</a>
         </div>
       </div>
@@ -598,23 +640,6 @@
           </div>
         </form>
       </div>
-
-      <!-- ===== CHATBOX n8n (KAI Silpro3R) ===== -->
-      <div class="card" style="padding:16px; margin-top:14px;">
-        <h3 style="margin:0 0 10px 0;">Chat de captura (n8n)</h3>
-
-        <div id="kai-chat" style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.04);">
-          <div id="kai-log" style="height:320px;overflow:auto;padding:12px;background:rgba(0,0,0,.12);"></div>
-
-          <form id="kai-form" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:rgba(255,255,255,.02);">
-            <input id="kai-msg" placeholder="Escribe aquí…" autocomplete="off"
-                  style="flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04);" />
-            <button class="btn primary" type="submit">Enviar</button>
-          </form>
-        </div>
-      </div>
-      <!-- ===== /CHATBOX n8n ===== -->
-
     </section>
   </main>
 
@@ -648,6 +673,29 @@
       </div>
     </div>
   </footer>
+
+  <!-- ===== MODAL CHAT (Atención al cliente) ===== -->
+  <div id="supportModal" class="modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close="1"></div>
+
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-label="Atención al cliente">
+      <div class="modal__head">
+        <div>
+          <b>Atención al cliente</b>
+          <div class="modal__sub">Chat conectado a n8n (o demo)</div>
+        </div>
+        <button class="btn" id="btnCloseSupport" type="button" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div id="kai-log" class="chatlog"></div>
+
+      <form id="kai-form" class="chatbar">
+        <input id="kai-msg" class="field" placeholder="Escribe aquí…" autocomplete="off" />
+        <button class="btn primary" type="submit">Enviar</button>
+      </form>
+    </div>
+  </div>
+  <!-- ===== /MODAL CHAT ===== -->
 
   <script>
     // ====== Datos demo (sustituye por tu JSON/CSV) ======
@@ -774,63 +822,109 @@
       alert("Carrito simulado (laboratorio). Conecta esto a tu flujo n8n/CRM si quieres.");
     });
 
-    const form = document.getElementById("contactForm");
-    const status = document.getElementById("formStatus");
-    form.addEventListener("submit", (e)=>{
+    // Contact form (simulado)
+    const contactFormEl = document.getElementById("contactForm");
+    const formStatusEl = document.getElementById("formStatus");
+    contactFormEl.addEventListener("submit", (e)=>{
       e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
+      const data = Object.fromEntries(new FormData(contactFormEl).entries());
       console.log("Lead (demo):", data);
-      status.textContent = "Enviado (simulación). Revisa la consola.";
-      form.reset();
-      setTimeout(()=> status.textContent = "", 4000);
+      formStatusEl.textContent = "Enviado (simulación). Revisa la consola.";
+      contactFormEl.reset();
+      setTimeout(()=> formStatusEl.textContent = "", 4000);
     });
 
     document.getElementById("year").textContent = new Date().getFullYear();
-
-    // Render inicial
     applyFilters();
 
-    // ====== CHAT n8n ======
-    const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook-test/kai-chat"; // <-- CAMBIA ESTO
+    // ====== CHAT SOPORTE (n8n o demo) ======
 
-    const kaiLog = document.getElementById("kai-log");
-    const kaiForm = document.getElementById("kai-form");
-    const kaiMsg = document.getElementById("kai-msg");
+    // Si NO cambias esta URL, el chat funcionará en MODO DEMO (para que lo veas ya).
+    // Cuando tengas tu Production URL, la pones aquí y listo.
+    const WEBHOOK_URL = "https://TU-N8N-DOMINIO/webhook/kai-chat";
 
-    const sessionId = localStorage.getItem("kai_sessionId") || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
-    localStorage.setItem("kai_sessionId", sessionId);
+    const supportModal = document.getElementById("supportModal");
+    const btnSupport = document.getElementById("btnSupport");
+    const btnCloseSupport = document.getElementById("btnCloseSupport");
 
-    function addKai(role, text) {
+    const chatLog = document.getElementById("kai-log");
+    const supportForm = document.getElementById("kai-form");
+    const chatMsg = document.getElementById("kai-msg");
+
+    const supportSessionId =
+      localStorage.getItem("kai_support_sessionId") ||
+      (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    localStorage.setItem("kai_support_sessionId", supportSessionId);
+
+    const demoMode = WEBHOOK_URL.includes("TU-N8N-DOMINIO");
+
+    function addChat(role, text) {
       const row = document.createElement("div");
       row.style.margin = "8px 0";
       row.innerHTML = `<b>${role}:</b> ${text}`;
-      kaiLog.appendChild(row);
-      kaiLog.scrollTop = kaiLog.scrollHeight;
+      chatLog.appendChild(row);
+      chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    addKai("Bot", "Hola 👋 Soy el chat conectado a n8n. Escribe un mensaje para probar.");
+    function openSupport(){
+      supportModal.classList.add("is-open");
+      supportModal.setAttribute("aria-hidden","false");
+      if (!chatLog.hasChildNodes()){
+        addChat("Bot", demoMode
+          ? "Hola 👋 (Modo DEMO). El chat está visible y funcionando. Cuando pongas tu URL real de n8n, responderé desde n8n."
+          : "Hola 👋 Soy el chat conectado a n8n. ¿En qué te ayudo?"
+        );
+      }
+      setTimeout(()=> chatMsg.focus(), 50);
+    }
+    function closeSupport(){
+      supportModal.classList.remove("is-open");
+      supportModal.setAttribute("aria-hidden","true");
+    }
 
-    kaiForm.addEventListener("submit", async (e) => {
+    btnSupport.addEventListener("click", openSupport);
+    btnCloseSupport.addEventListener("click", closeSupport);
+    supportModal.addEventListener("click", (e)=>{
+      if (e.target && e.target.getAttribute("data-close") === "1") closeSupport();
+    });
+    document.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && supportModal.classList.contains("is-open")) closeSupport();
+    });
+
+    async function sendToN8n(message){
+      const r = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, sessionId: supportSessionId })
+      });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    }
+
+    supportForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const message = (kaiMsg.value || "").trim();
+      const message = (chatMsg.value || "").trim();
       if (!message) return;
 
-      kaiMsg.value = "";
-      addKai("Tú", message);
+      chatMsg.value = "";
+      addChat("Tú", message);
 
+      // MODO DEMO: responde sin n8n para que el usuario vea que funciona
+      if (demoMode){
+        const reply =
+          `✅ (DEMO) He recibido: "${message}".\n` +
+          `Para conectarlo a n8n, pega tu Production URL en WEBHOOK_URL.`;
+        addChat("Bot", reply.replace(/\n/g,"<br/>"));
+        return;
+      }
+
+      // MODO n8n REAL
       try {
-        const r = await fetch(WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, sessionId })
-        });
-
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        const data = await r.json();
-        addKai("Bot", data.reply ?? "(sin respuesta)");
+        const data = await sendToN8n(message);
+        addChat("Bot", (data.reply ?? "(sin respuesta)"));
       } catch (err) {
         console.error(err);
-        addKai("Bot", "❌ Error conectando con n8n. Revisa URL / workflow activo / CORS.");
+        addChat("Bot", "❌ Error conectando con n8n. Revisa URL / workflow activo / CORS.");
       }
     });
   </script>
