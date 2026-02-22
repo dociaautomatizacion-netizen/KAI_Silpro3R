@@ -782,6 +782,71 @@
     // Render inicial
     applyFilters();
   </script>
+<!-- ===== CHATBOX n8n (KAI Silpro3R) ===== -->
+<section style="max-width:720px;margin:40px auto;padding:0 16px;">
+  <h2 style="margin:0 0 12px 0;">Chat de captura (n8n)</h2>
+
+  <div id="kai-chat" style="border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;">
+    <div id="kai-log" style="height:320px;overflow:auto;padding:12px;background:#fafafa;"></div>
+
+    <form id="kai-form" style="display:flex;gap:8px;padding:12px;border-top:1px solid #e5e7eb;background:#fff;">
+      <input id="kai-msg" placeholder="Escribe aquí…" autocomplete="off"
+             style="flex:1;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;font-size:14px;" />
+      <button style="padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#111827;color:#fff;cursor:pointer;">
+        Enviar
+      </button>
+    </form>
+  </div>
+</section>
+
+<script>
+  // Pega aquí tu Production URL del Webhook de n8n:
+  const WEBHOOK_URL = "https://TU-N8N-DOMINIO/webhook/kai-chat";
+
+  const log = document.getElementById("kai-log");
+  const form = document.getElementById("kai-form");
+  const input = document.getElementById("kai-msg");
+
+  const sessionId = localStorage.getItem("kai_sessionId") || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  localStorage.setItem("kai_sessionId", sessionId);
+
+  function add(role, text) {
+    const row = document.createElement("div");
+    row.style.margin = "8px 0";
+    row.innerHTML = `<b>${role}:</b> ${text}`;
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  add("Bot", "Hola 👋 Soy el chat conectado a n8n. Escribe un mensaje para probar.");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = "";
+    add("Tú", message);
+
+    try {
+      const r = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, sessionId })
+      });
+
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const data = await r.json();
+      add("Bot", data.reply ?? "(sin respuesta)");
+    } catch (err) {
+      console.error(err);
+      add("Bot", "❌ Error conectando con n8n. Revisa URL / workflow activo / CORS.");
+    }
+  });
+</script>
+<!-- ===== /CHATBOX n8n ===== -->
+
+  
 </body>
 </html>
 
