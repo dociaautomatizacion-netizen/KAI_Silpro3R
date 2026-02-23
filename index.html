@@ -76,7 +76,8 @@
     }
     .logo{
       width:42px; height:42px; border-radius:14px;
-      background: linear-gradient(135deg, rgba(90,162,255,.95), rgba(124,255,166,.55));
+      background:
+        linear-gradient(135deg, rgba(90,162,255,.95), rgba(124,255,166,.55));
       box-shadow: var(--shadow);
       position:relative;
       overflow:hidden;
@@ -350,7 +351,7 @@
     }
     .modal__panel{
       position:relative;
-      width:min(820px, calc(100% - 24px));
+      width:min(720px, calc(100% - 24px));
       margin: 6vh auto;
       border:1px solid var(--line);
       border-radius: var(--radius);
@@ -366,13 +367,19 @@
     }
     .modal__sub{ font-size:12px; color:var(--muted); margin-top:3px; }
 
-    /* Contenedor del chat */
+    /* Contenedor del widget dentro del modal */
     #n8nChatMount{
       padding:14px;
       background: rgba(0,0,0,.10);
-      min-height: 520px;
+      min-height: 420px;
+    }
+    /* Ajuste visual para que el widget no quede “pegado” */
+    #n8nChatMount .n8n-chat{
+      border-radius: 14px;
+      overflow: hidden;
     }
 
+    /* Responsive */
     @media (max-width: 980px){
       .heroGrid{ grid-template-columns: 1fr; }
       .actions{ min-width:unset; }
@@ -387,12 +394,12 @@
       .products{ grid-template-columns: 1fr; }
       .form{ grid-template-columns: 1fr; }
       .modal__panel{ margin: 3vh auto; }
-      #n8nChatMount{ min-height: 70vh; }
+      #n8nChatMount{ min-height: 65vh; }
     }
   </style>
 
-  <!-- ✅ CSS del widget n8n chat -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" />
+  <!-- ===== n8n Chat Widget (CSS) ===== -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@n8n/chat/style.css" />
 </head>
 
 <body>
@@ -436,7 +443,7 @@
           </div>
           <button class="btn" id="btnCart" type="button" title="Carrito (simulado)">🛒</button>
 
-          <!-- BOTÓN CHAT -->
+          <!-- BOTÓN SOPORTE -->
           <button class="btn" id="btnSupport" type="button" title="Atención al cliente">💬 Atención al cliente</button>
 
           <a class="btn primary" href="#productos">Ver catálogo</a>
@@ -674,14 +681,16 @@
       <div class="modal__head">
         <div>
           <b>Atención al cliente</b>
-          <div class="modal__sub">Chat conectado a n8n</div>
+          <div class="modal__sub">Chat conectado a n8n (widget oficial)</div>
         </div>
         <button class="btn" id="btnCloseSupport" type="button" aria-label="Cerrar">✕</button>
       </div>
 
+      <!-- Aquí se monta el widget -->
       <div id="n8nChatMount"></div>
     </div>
   </div>
+  <!-- ===== /MODAL CHAT ===== -->
 
   <script>
     // ====== Datos demo (sustituye por tu JSON/CSV) ======
@@ -727,6 +736,11 @@
       for(const p of products){
         const node = document.createElement("article");
         node.className = "product";
+        node.setAttribute("data-collection", p.collection);
+        node.setAttribute("data-stock", p.stock);
+        node.setAttribute("data-price", String(p.price));
+        node.setAttribute("data-title", p.title.toLowerCase());
+
         node.innerHTML = `
           <div class="thumb">
             <div class="tag">${p.tag}${p.stock === "out" ? " • Agotado" : ""}</div>
@@ -752,6 +766,7 @@
       const s = elStock.value;
 
       let list = DEMO_PRODUCTS.slice();
+
       if(c !== "all") list = list.filter(p => p.collection === c);
       if(s !== "all") list = list.filter(p => p.stock === (s === "in" ? "in" : "out"));
       if(q) list = list.filter(p =>
@@ -798,9 +813,8 @@
         alert("Simulación: acción de carrito / avisos. SKU: " + sku);
       }
     });
-
     document.getElementById("btnCart").addEventListener("click", ()=>{
-      alert("Carrito simulado (laboratorio).");
+      alert("Carrito simulado (laboratorio). Conecta esto a tu flujo n8n/CRM si quieres.");
     });
 
     // Contact form (simulado)
@@ -826,8 +840,6 @@
     function openSupport(){
       supportModal.classList.add("is-open");
       supportModal.setAttribute("aria-hidden","false");
-      // Montamos el chat solo la primera vez que abres el modal
-      window.__mountN8nChat && window.__mountN8nChat();
     }
     function closeSupport(){
       supportModal.classList.remove("is-open");
@@ -844,26 +856,32 @@
     });
   </script>
 
-  <!-- ✅ n8n chat (ESM) -->
+  <!-- ===== n8n Chat Widget (JS) - se monta dentro del modal ===== -->
   <script type="module">
-    import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
+    import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/chat.bundle.es.js";
 
-    const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook/1c5310c1-7963-487b-bc5c-f860eba187d6/chat";
+    const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook/4d3ac12e-06bf-4f5f-8bcd-c3b4e0b74008/chat";
+    const mountEl = document.getElementById("n8nChatMount");
 
     let mounted = false;
 
-    // Lo exponemos al script de arriba para montarlo al abrir el modal
-    window.__mountN8nChat = () => {
+    function ensureMounted(){
       if (mounted) return;
       mounted = true;
 
+      // Estilo del contenedor para que quede bien dentro del modal
+      mountEl.style.padding = "14px";
+      mountEl.style.background = "rgba(0,0,0,.10)";
+      mountEl.style.minHeight = "420px";
+
       createChat({
         webhookUrl: WEBHOOK_URL,
-        target: "#n8nChatMount",
-        mode: "fullscreen",
-        showWelcomeScreen: true,
+        target: "#n8nChatMount"
       });
-    };
+    }
+
+    // Monta el widget al abrir el modal
+    document.getElementById("btnSupport").addEventListener("click", ensureMounted);
   </script>
 </body>
 </html>
