@@ -371,12 +371,41 @@
       border-bottom:1px solid var(--line);
     }
     .modal__sub{ font-size:12px; color:var(--muted); margin-top:3px; }
+
+    /* Chat bubbles */
     .chatlog{
-      height: 340px;
+      height: 360px;
       overflow:auto;
-      padding:12px 14px;
+      padding:14px;
       background: rgba(0,0,0,.10);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
+    .msg{
+      max-width: 78%;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .msg.me{
+      margin-left:auto;
+      background: linear-gradient(135deg, rgba(90,162,255,.18), rgba(124,255,166,.10));
+      border-color: rgba(90,162,255,.35);
+    }
+    .msg.bot{
+      margin-right:auto;
+    }
+    .msg .meta{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+
     .chatbar{
       display:flex; gap:10px; align-items:center;
       padding:12px 14px;
@@ -399,6 +428,9 @@
       .grid4{ grid-template-columns: 1fr; }
       .products{ grid-template-columns: 1fr; }
       .form{ grid-template-columns: 1fr; }
+      .modal__panel{ margin: 3vh auto; }
+      .chatlog{ height: 55vh; }
+      .msg{ max-width: 92%; }
     }
   </style>
 </head>
@@ -682,12 +714,12 @@
       <div class="modal__head">
         <div>
           <b>Atención al cliente</b>
-          <div class="modal__sub">Chat conectado a n8n (o demo)</div>
+          <div class="modal__sub">Chat conectado a n8n</div>
         </div>
         <button class="btn" id="btnCloseSupport" type="button" aria-label="Cerrar">✕</button>
       </div>
 
-      <div id="kai-log" class="chatlog"></div>
+      <div id="kai-log" class="chatlog" aria-live="polite"></div>
 
       <form id="kai-form" class="chatbar">
         <input id="kai-msg" class="field" placeholder="Escribe aquí…" autocomplete="off" />
@@ -837,11 +869,8 @@
     document.getElementById("year").textContent = new Date().getFullYear();
     applyFilters();
 
-    // ====== CHAT SOPORTE (n8n o demo) ======
-
-    // Si NO cambias esta URL, el chat funcionará en MODO DEMO (para que lo veas ya).
-    // Cuando tengas tu Production URL, la pones aquí y listo.
-    const WEBHOOK_URL = new URL("https://kukulcanai.app.n8n.cloud/webhook/4d3ac12e-06bf-4f5f-8bcd-c3b4e0b74008/chat").toString();
+    // ====== CHAT SOPORTE (n8n REAL) ======
+    const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook/4d3ac12e-06bf-4f5f-8bcd-c3b4e0b74008/chat";
 
     const supportModal = document.getElementById("supportModal");
     const btnSupport = document.getElementById("btnSupport");
@@ -856,13 +885,20 @@
       (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
     localStorage.setItem("kai_support_sessionId", supportSessionId);
 
-    const demoMode = WEBHOOK_URL.includes("TU-N8N-DOMINIO");
+    function timeHHMM(){
+      const d = new Date();
+      return d.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+    }
 
-    function addChat(role, text) {
-      const row = document.createElement("div");
-      row.style.margin = "8px 0";
-      row.innerHTML = `<b>${role}:</b> ${text}`;
-      chatLog.appendChild(row);
+    function addChatBubble(who, text){
+      const div = document.createElement("div");
+      div.className = "msg " + (who === "me" ? "me" : "bot");
+      div.textContent = text;
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      meta.textContent = (who === "me" ? "Tú" : "Bot") + " • " + timeHHMM();
+      div.appendChild(meta);
+      chatLog.appendChild(div);
       chatLog.scrollTop = chatLog.scrollHeight;
     }
 
@@ -870,10 +906,7 @@
       supportModal.classList.add("is-open");
       supportModal.setAttribute("aria-hidden","false");
       if (!chatLog.hasChildNodes()){
-        addChat("Bot", demoMode
-          ? "Hola 👋 (Modo DEMO). El chat está visible y funcionando. Cuando pongas tu URL real de n8n, responderé desde n8n."
-          : "Hola 👋 Soy el chat conectado a n8n. ¿En qué te ayudo?"
-        );
+        addChatBubble("bot", "Hola 👋 Soy el chat conectado a n8n. ¿En qué te ayudo?");
       }
       setTimeout(()=> chatMsg.focus(), 50);
     }
@@ -895,10 +928,58 @@
       const r = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, sessionId: supportSessionId })
+        body: JSON.stringify({
+          message,
+          sessionId: supportSessionId,
+          source: "web",
+          ts: new Date().toISOString()
+        })
       });
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return await r.json();
+
+      // Si n8n devuelve HTML o texto plano, intenta igualmente
+      const contentType = (r.headers.get("content-type") || "").toLowerCase();
+      let data = null;
+
+      if(contentType.includes("application/json")){
+        data = await r.json();
+      } else {
+        const txt = await r.text();
+        data = { reply: txt };
+      }
+
+      if (!r.ok){
+        const msg = (data && (data.error || data.message || data.reply)) ? (data.error || data.message || data.reply) : ("HTTP " + r.status);
+        throw new Error(msg);
+      }
+
+      return data;
+    }
+
+    function pickReply(data){
+      if(!data) return "(sin respuesta)";
+      if(typeof data === "string") return data;
+
+      // campos típicos
+      const candidates = [
+        data.reply,
+        data.text,
+        data.message,
+        data.output,
+        data.answer,
+        data.response,
+        data.data?.reply,
+        data.data?.text
+      ].filter(Boolean);
+
+      if(candidates.length) return String(candidates[0]);
+
+      // si viene como array tipo [{...}]
+      if(Array.isArray(data) && data.length){
+        const d0 = data[0];
+        return String(d0.reply || d0.text || d0.message || JSON.stringify(d0));
+      }
+
+      return JSON.stringify(data);
     }
 
     supportForm.addEventListener("submit", async (e) => {
@@ -907,50 +988,16 @@
       if (!message) return;
 
       chatMsg.value = "";
-      addChat("Tú", message);
+      addChatBubble("me", message);
 
-      // MODO DEMO: responde sin n8n para que el usuario vea que funciona
-      if (demoMode){
-        const reply =
-          `✅ (DEMO) He recibido: "${message}".\n` +
-          `Para conectarlo a n8n, pega tu Production URL en WEBHOOK_URL.`;
-        addChat("Bot", reply.replace(/\n/g,"<br/>"));
-        return;
-      }
-
-      // MODO n8n REAL
       try {
         const data = await sendToN8n(message);
-        addChat("Bot", (data.reply ?? "(sin respuesta)"));
+        addChatBubble("bot", pickReply(data));
       } catch (err) {
         console.error(err);
-        addChat("Bot", "❌ Error conectando con n8n. Revisa URL / workflow activo / CORS.");
+        addChatBubble("bot", "❌ Error conectando con n8n. Revisa: workflow activo, CORS (si aplica) y que el webhook responda JSON.");
       }
     });
   </script>
-  <!-- ===== WIDGET CHAT FIJO ===== -->
-<div id="supportWidget" style="position:fixed;right:18px;bottom:18px;z-index:9999;">
-  <button id="supportToggle" class="btn primary" type="button" style="box-shadow:var(--shadow);">
-    💬 Atención al cliente
-  </button>
-
-  <div id="supportPanel" class="card" style="display:none;width:min(360px, calc(100vw - 36px));margin-top:10px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 12px;border-bottom:1px solid var(--line);">
-      <div>
-        <b>Atención al cliente</b>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Chat conectado a n8n</div>
-      </div>
-      <button id="supportClose" class="btn" type="button">✕</button>
-    </div>
-
-    <div id="kai-log" style="height:260px;overflow:auto;padding:12px;background:rgba(0,0,0,.10);"></div>
-
-    <form id="kai-form" style="display:flex;gap:10px;align-items:center;padding:12px;border-top:1px solid var(--line);background:rgba(255,255,255,.02);">
-      <input id="kai-msg" class="field" placeholder="Escribe aquí…" autocomplete="off" />
-      <button class="btn primary" type="submit">Enviar</button>
-    </form>
-  </div>
-</div>
-<!-- ===== /WIDGET CHAT FIJO ===== -->
 </body>
 </html>
