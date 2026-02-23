@@ -206,11 +206,6 @@
     }
     .sectionHead p{ margin:0; color:var(--muted); font-size:13px; max-width:70ch; }
 
-    .grid3{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
     .grid4{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -372,45 +367,16 @@
     }
     .modal__sub{ font-size:12px; color:var(--muted); margin-top:3px; }
 
-    /* Chat bubbles */
-    .chatlog{
-      height: 360px;
-      overflow:auto;
+    /* Contenedor del widget dentro del modal */
+    #n8nChatMount{
       padding:14px;
       background: rgba(0,0,0,.10);
-      display:flex;
-      flex-direction:column;
-      gap:10px;
+      min-height: 420px;
     }
-    .msg{
-      max-width: 78%;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:14px;
-      background:rgba(255,255,255,.04);
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-    .msg.me{
-      margin-left:auto;
-      background: linear-gradient(135deg, rgba(90,162,255,.18), rgba(124,255,166,.10));
-      border-color: rgba(90,162,255,.35);
-    }
-    .msg.bot{
-      margin-right:auto;
-    }
-    .msg .meta{
-      display:block;
-      font-size:11px;
-      color:var(--muted);
-      margin-top:6px;
-    }
-
-    .chatbar{
-      display:flex; gap:10px; align-items:center;
-      padding:12px 14px;
-      border-top:1px solid var(--line);
-      background: rgba(255,255,255,.02);
+    /* Ajuste visual para que el widget no quede “pegado” */
+    #n8nChatMount .n8n-chat{
+      border-radius: 14px;
+      overflow: hidden;
     }
 
     /* Responsive */
@@ -424,15 +390,16 @@
     @media (max-width: 560px){
       .links{ display:none; }
       .search{ width: 56vw; }
-      .grid3{ grid-template-columns: 1fr; }
       .grid4{ grid-template-columns: 1fr; }
       .products{ grid-template-columns: 1fr; }
       .form{ grid-template-columns: 1fr; }
       .modal__panel{ margin: 3vh auto; }
-      .chatlog{ height: 55vh; }
-      .msg{ max-width: 92%; }
+      #n8nChatMount{ min-height: 65vh; }
     }
   </style>
+
+  <!-- ===== n8n Chat Widget (CSS) ===== -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@n8n/chat/style.css" />
 </head>
 
 <body>
@@ -714,17 +681,13 @@
       <div class="modal__head">
         <div>
           <b>Atención al cliente</b>
-          <div class="modal__sub">Chat conectado a n8n</div>
+          <div class="modal__sub">Chat conectado a n8n (widget oficial)</div>
         </div>
         <button class="btn" id="btnCloseSupport" type="button" aria-label="Cerrar">✕</button>
       </div>
 
-      <div id="kai-log" class="chatlog" aria-live="polite"></div>
-
-      <form id="kai-form" class="chatbar">
-        <input id="kai-msg" class="field" placeholder="Escribe aquí…" autocomplete="off" />
-        <button class="btn primary" type="submit">Enviar</button>
-      </form>
+      <!-- Aquí se monta el widget -->
+      <div id="n8nChatMount"></div>
     </div>
   </div>
   <!-- ===== /MODAL CHAT ===== -->
@@ -869,46 +832,14 @@
     document.getElementById("year").textContent = new Date().getFullYear();
     applyFilters();
 
-    // ====== CHAT SOPORTE (n8n REAL) ======
-    const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook/4d3ac12e-06bf-4f5f-8bcd-c3b4e0b74008/chat";
-
+    // ===== Modal open/close =====
     const supportModal = document.getElementById("supportModal");
     const btnSupport = document.getElementById("btnSupport");
     const btnCloseSupport = document.getElementById("btnCloseSupport");
 
-    const chatLog = document.getElementById("kai-log");
-    const supportForm = document.getElementById("kai-form");
-    const chatMsg = document.getElementById("kai-msg");
-
-    const supportSessionId =
-      localStorage.getItem("kai_support_sessionId") ||
-      (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
-    localStorage.setItem("kai_support_sessionId", supportSessionId);
-
-    function timeHHMM(){
-      const d = new Date();
-      return d.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-    }
-
-    function addChatBubble(who, text){
-      const div = document.createElement("div");
-      div.className = "msg " + (who === "me" ? "me" : "bot");
-      div.textContent = text;
-      const meta = document.createElement("span");
-      meta.className = "meta";
-      meta.textContent = (who === "me" ? "Tú" : "Bot") + " • " + timeHHMM();
-      div.appendChild(meta);
-      chatLog.appendChild(div);
-      chatLog.scrollTop = chatLog.scrollHeight;
-    }
-
     function openSupport(){
       supportModal.classList.add("is-open");
       supportModal.setAttribute("aria-hidden","false");
-      if (!chatLog.hasChildNodes()){
-        addChatBubble("bot", "Hola 👋 Soy el chat conectado a n8n. ¿En qué te ayudo?");
-      }
-      setTimeout(()=> chatMsg.focus(), 50);
     }
     function closeSupport(){
       supportModal.classList.remove("is-open");
@@ -923,81 +854,34 @@
     document.addEventListener("keydown", (e)=>{
       if (e.key === "Escape" && supportModal.classList.contains("is-open")) closeSupport();
     });
+  </script>
 
-    async function sendToN8n(message){
-      const r = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message,
-          sessionId: supportSessionId,
-          source: "web",
-          ts: new Date().toISOString()
-        })
+  <!-- ===== n8n Chat Widget (JS) - se monta dentro del modal ===== -->
+  <script type="module">
+    import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/chat.bundle.es.js";
+
+    const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook/4d3ac12e-06bf-4f5f-8bcd-c3b4e0b74008/chat";
+    const mountEl = document.getElementById("n8nChatMount");
+
+    let mounted = false;
+
+    function ensureMounted(){
+      if (mounted) return;
+      mounted = true;
+
+      // Estilo del contenedor para que quede bien dentro del modal
+      mountEl.style.padding = "14px";
+      mountEl.style.background = "rgba(0,0,0,.10)";
+      mountEl.style.minHeight = "420px";
+
+      createChat({
+        webhookUrl: WEBHOOK_URL,
+        target: "#n8nChatMount"
       });
-
-      // Si n8n devuelve HTML o texto plano, intenta igualmente
-      const contentType = (r.headers.get("content-type") || "").toLowerCase();
-      let data = null;
-
-      if(contentType.includes("application/json")){
-        data = await r.json();
-      } else {
-        const txt = await r.text();
-        data = { reply: txt };
-      }
-
-      if (!r.ok){
-        const msg = (data && (data.error || data.message || data.reply)) ? (data.error || data.message || data.reply) : ("HTTP " + r.status);
-        throw new Error(msg);
-      }
-
-      return data;
     }
 
-    function pickReply(data){
-      if(!data) return "(sin respuesta)";
-      if(typeof data === "string") return data;
-
-      // campos típicos
-      const candidates = [
-        data.reply,
-        data.text,
-        data.message,
-        data.output,
-        data.answer,
-        data.response,
-        data.data?.reply,
-        data.data?.text
-      ].filter(Boolean);
-
-      if(candidates.length) return String(candidates[0]);
-
-      // si viene como array tipo [{...}]
-      if(Array.isArray(data) && data.length){
-        const d0 = data[0];
-        return String(d0.reply || d0.text || d0.message || JSON.stringify(d0));
-      }
-
-      return JSON.stringify(data);
-    }
-
-    supportForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const message = (chatMsg.value || "").trim();
-      if (!message) return;
-
-      chatMsg.value = "";
-      addChatBubble("me", message);
-
-      try {
-        const data = await sendToN8n(message);
-        addChatBubble("bot", pickReply(data));
-      } catch (err) {
-        console.error(err);
-        addChatBubble("bot", "❌ Error conectando con n8n. Revisa: workflow activo, CORS (si aplica) y que el webhook responda JSON.");
-      }
-    });
+    // Monta el widget al abrir el modal
+    document.getElementById("btnSupport").addEventListener("click", ensureMounted);
   </script>
 </body>
 </html>
