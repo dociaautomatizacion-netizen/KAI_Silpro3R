@@ -120,6 +120,10 @@
       border-radius:999px;
       padding:10px 12px;
       cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
     }
     .btn.primary{
       border-color: rgba(90,162,255,.55);
@@ -373,7 +377,6 @@
       background: rgba(0,0,0,.10);
       min-height: 420px;
     }
-    /* Ajuste visual para que el widget no quede “pegado” */
     #n8nChatMount .n8n-chat{
       border-radius: 14px;
       overflow: hidden;
@@ -443,8 +446,8 @@
           </div>
           <button class="btn" id="btnCart" type="button" title="Carrito (simulado)">🛒</button>
 
-          <!-- BOTÓN SOPORTE -->
-          <button class="btn" id="btnSupport" type="button" title="Atención al cliente">💬 Atención al cliente</button>
+          <!-- BOTÓN SOPORTE (CAMBIADO) -->
+          <button class="btn" id="btnSupport" type="button" title="Consultanos">💬 Consultanos</button>
 
           <a class="btn primary" href="#productos">Ver catálogo</a>
         </div>
@@ -673,15 +676,15 @@
     </div>
   </footer>
 
-  <!-- ===== MODAL CHAT (Atención al cliente) ===== -->
+  <!-- ===== MODAL CHAT (Consultanos) ===== -->
   <div id="supportModal" class="modal" aria-hidden="true">
     <div class="modal__backdrop" data-close="1"></div>
 
-    <div class="modal__panel" role="dialog" aria-modal="true" aria-label="Atención al cliente">
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-label="Consultanos">
       <div class="modal__head">
         <div>
-          <b>Atención al cliente</b>
-          <div class="modal__sub">Chat conectado a n8n (widget oficial)</div>
+          <b>Consultanos</b>
+          <div class="modal__sub">Chat conectado a n8n</div>
         </div>
         <button class="btn" id="btnCloseSupport" type="button" aria-label="Cerrar">✕</button>
       </div>
@@ -860,6 +863,7 @@
   <script type="module">
     import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/chat.bundle.es.js";
 
+    // TU WEBHOOK (YA ESTÁ PUESTO)
     const WEBHOOK_URL = "https://kukulcanai.app.n8n.cloud/webhook/1c5310c1-7963-487b-bc5c-f860eba187d6/chat";
     const mountEl = document.getElementById("n8nChatMount");
 
@@ -869,11 +873,7 @@
       if (mounted) return;
       mounted = true;
 
-      // Estilo del contenedor para que quede bien dentro del modal
-      mountEl.style.padding = "14px";
-      mountEl.style.background = "rgba(0,0,0,.10)";
-      mountEl.style.minHeight = "420px";
-
+      // Montamos el chat dentro del modal
       createChat({
         webhookUrl: WEBHOOK_URL,
         target: "#n8nChatMount"
