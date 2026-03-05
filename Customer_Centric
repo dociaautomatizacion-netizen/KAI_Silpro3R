@@ -3,7 +3,7 @@
 
 <script>
 
-const WEBHOOK="PEGA_AQUI_TU_WEBHOOK"
+const WEBHOOK=https://kukulcanai.app.n8n.cloud/webhook/816a475f-26e4-4deb-adcc-9458bbd65268
 
 async function send(){
 
