@@ -1,1 +1,380 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Customer Centric Chat</title>
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --panel:#ffffff;
+      --muted:#6b7280;
+      --text:#0f172a;
+      --border:#e5e7eb;
+      --blue:#2563eb;
+      --blue2:#1d4ed8;
+      --bubble:#f3f4f6;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .shell{
+      max-width: 980px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display:flex;
+      flex-direction:column;
+      padding: 18px 14px;
+    }
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 6px 2px 12px 2px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:650;
+    }
+    .dot{width:10px;height:10px;border-radius:99px;background:var(--blue)}
+    .sub{font-weight:500;color:var(--muted);font-size:12px}
+    .btn{
+      border:1px solid var(--border);
+      background:var(--panel);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background:var(--blue);
+      border-color:var(--blue);
+      color:white;
+    }
+    .btn.primary:hover{background:var(--blue2)}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.06);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      flex:1;
+      min-height: 70vh;
+    }
+    .hero{
+      padding: 20px 20px 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff, #fbfbfc);
+    }
+    .hero h1{
+      margin:0 0 6px 0;
+      font-size:18px;
+      letter-spacing:-.2px;
+    }
+    .hero p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.35;
+      font-size:13px;
+    }
+    .chat{
+      padding: 14px;
+      overflow:auto;
+      flex:1;
+      background: #fafafa;
+    }
+    .row{
+      display:flex;
+      margin: 10px 0;
+      gap:10px;
+      align-items:flex-end;
+    }
+    .row.me{justify-content:flex-end}
+    .avatar{
+      width:28px;height:28px;border-radius:999px;
+      background: #eaeefb;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;color:#1e3a8a;
+      border:1px solid #dbe4ff;
+      flex: 0 0 28px;
+    }
+    .bubble{
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: var(--panel);
+      white-space: pre-wrap;
+      line-height:1.35;
+      font-size:14px;
+    }
+    .bubble.user{
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+      border-bottom-right-radius: 6px;
+    }
+    .bubble.bot{
+      background: var(--bubble);
+      border-bottom-left-radius: 6px;
+    }
+    .composer{
+      border-top:1px solid var(--border);
+      padding: 12px;
+      display:flex;
+      gap:10px;
+      background: var(--panel);
+      align-items:center;
+    }
+    textarea{
+      width:100%;
+      resize:none;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding: 12px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      outline:none;
+      min-height: 46px;
+      max-height: 140px;
+      background:#fff;
+    }
+    .meta{
+      padding: 10px 14px 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .tools{
+      display:flex; gap:8px; flex-wrap:wrap;
+      padding: 10px 14px 14px 14px;
+      border-top:1px dashed #eceef3;
+      background: #fff;
+    }
+    .pill{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:999px;
+      padding:8px 10px;
+      font-size:12px;
+      color:var(--text);
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div>
+        <div class="brand"><span class="dot"></span> Customer Centric <span class="sub">Chatbox</span></div>
+        <div class="sub" id="status">Conectado cuando el webhook responda ✅</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" id="copyBrief" disabled>Copiar Brief</button>
+        <button class="btn" id="downloadCsv" disabled>Descargar CSV</button>
+        <button class="btn" id="newSession">Nueva sesión</button>
+      </div>
+    </div>
 
+    <div class="panel">
+      <div class="hero">
+        <h1>Cuando disponga y esté cómodo…</h1>
+        <p>
+          Por favor, hábleme de su empresa, su sector, sus productos/servicios y, sobre todo, de su buyer persona.
+          Iremos paso a paso. Una pregunta cada vez.
+        </p>
+      </div>
+
+      <div class="chat" id="chat"></div>
+
+      <div class="composer">
+        <textarea id="msg" placeholder="Escribe aquí… (Enter para enviar, Shift+Enter para salto de línea)"></textarea>
+        <button class="btn primary" id="send">Enviar</button>
+      </div>
+
+      <div class="meta">Consejo: si respondes con bullets, mejor (• punto 1, • punto 2).</div>
+      <div class="tools">
+        <button class="pill" data-fill="Mi empresa es ____ y operamos en el sector ____">Plantilla empresa</button>
+        <button class="pill" data-fill="Vendemos (productos/servicios): ____">Plantilla oferta</button>
+        <button class="pill" data-fill="Buyer persona: cargo/rol ____, objetivo ____, objeciones ____, criterios de compra ____">Plantilla persona</button>
+        <button class="pill" data-fill="Pains principales:\n• \n• \n• ">Plantilla pains</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // 1) CAMBIA ESTO:
+  const N8N_WEBHOOK_URL = "https://TU-CUENTA.n8n.cloud/webhook/kw-chat";
+
+  // 2) Keys de almacenamiento
+  const sidKey = "cc_session_id";
+  const histKey = "cc_history";
+  const briefKey = "cc_brief";
+  const csvKey = "cc_csv";
+
+  const chatEl = document.getElementById("chat");
+  const msgEl = document.getElementById("msg");
+  const sendBtn = document.getElementById("send");
+  const statusEl = document.getElementById("status");
+  const copyBriefBtn = document.getElementById("copyBrief");
+  const downloadCsvBtn = document.getElementById("downloadCsv");
+  const newSessionBtn = document.getElementById("newSession");
+
+  function uid(){
+    return "s_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  }
+
+  let sessionId = localStorage.getItem(sidKey) || uid();
+  localStorage.setItem(sidKey, sessionId);
+
+  let history = JSON.parse(localStorage.getItem(histKey) || "[]");
+  let lastBrief = localStorage.getItem(briefKey) || "";
+  let lastCsv = localStorage.getItem(csvKey) || "";
+
+  function add(role, text){
+    const row = document.createElement("div");
+    row.className = "row" + (role === "user" ? " me" : "");
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = role === "user" ? "Tú" : "AI";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble " + (role === "user" ? "user" : "bot");
+    bubble.textContent = text;
+
+    if (role === "user"){
+      row.appendChild(bubble);
+      row.appendChild(avatar);
+    } else {
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+    }
+
+    chatEl.appendChild(row);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function render(){
+    chatEl.innerHTML = "";
+    if (history.length === 0){
+      const first = "Cuando disponga y esté cómodo, cuénteme: ¿cómo se llama su empresa y en qué sector opera?";
+      add("assistant", first);
+      history.push({role:"assistant", content:first});
+      localStorage.setItem(histKey, JSON.stringify(history));
+    } else {
+      history.forEach(m => add(m.role, m.content));
+    }
+
+    copyBriefBtn.disabled = !lastBrief;
+    downloadCsvBtn.disabled = !lastCsv;
+  }
+
+  render();
+
+  async function send(){
+    const text = msgEl.value.trim();
+    if (!text) return;
+
+    msgEl.value = "";
+    add("user", text);
+    history.push({role:"user", content:text});
+    localStorage.setItem(histKey, JSON.stringify(history));
+
+    sendBtn.disabled = true;
+    statusEl.textContent = "Enviando a n8n…";
+
+    try{
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ sessionId, message: text, history })
+      });
+
+      const data = await res.json();
+
+      const bot = data.assistantMessage || "No recibí respuesta del servidor.";
+      add("assistant", bot);
+      history.push({role:"assistant", content:bot});
+      localStorage.setItem(histKey, JSON.stringify(history));
+
+      if (data.briefCvText){
+        lastBrief = data.briefCvText;
+        localStorage.setItem(briefKey, lastBrief);
+        copyBriefBtn.disabled = false;
+      }
+      if (data.csvText){
+        lastCsv = data.csvText;
+        localStorage.setItem(csvKey, lastCsv);
+        downloadCsvBtn.disabled = false;
+      }
+
+      statusEl.textContent = data.stage === "done"
+        ? "✅ Listo: guardado y exportable."
+        : "🧩 Recogiendo datos…";
+
+    } catch(e){
+      statusEl.textContent = "❌ Error conectando con n8n (URL/CORS).";
+      add("assistant", "He tenido un problema conectando con n8n. Revisa la URL del webhook y que el workflow esté activado.");
+    } finally{
+      sendBtn.disabled = false;
+    }
+  }
+
+  // Enter para enviar, Shift+Enter salto de línea
+  msgEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey){
+      e.preventDefault();
+      send();
+    }
+  });
+  document.getElementById("send").addEventListener("click", send);
+
+  copyBriefBtn.addEventListener("click", async () => {
+    if (!lastBrief) return;
+    await navigator.clipboard.writeText(lastBrief);
+    statusEl.textContent = "📋 Brief copiado.";
+  });
+
+  downloadCsvBtn.addEventListener("click", () => {
+    if (!lastCsv) return;
+    const blob = new Blob([lastCsv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "customer_centric_brief.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = "⬇️ CSV descargado.";
+  });
+
+  newSessionBtn.addEventListener("click", () => {
+    sessionId = uid();
+    history = [];
+    lastBrief = "";
+    lastCsv = "";
+    localStorage.setItem(sidKey, sessionId);
+    localStorage.setItem(histKey, "[]");
+    localStorage.removeItem(briefKey);
+    localStorage.removeItem(csvKey);
+    statusEl.textContent = "Sesión reiniciada.";
+    render();
+  });
+
+  // Botones plantilla
+  document.querySelectorAll(".pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      msgEl.value = btn.getAttribute("data-fill");
+      msgEl.focus();
+    });
+  });
+</script>
+</body>
+</html>
